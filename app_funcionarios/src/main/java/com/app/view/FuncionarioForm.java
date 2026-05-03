@@ -1,7 +1,9 @@
 package com.app.view;
 
 import com.app.controller.FuncionarioController;
+import com.app.controller.DepartamentoController;
 import com.app.model.Funcionario;
+import com.app.model.Departamento;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -11,11 +13,12 @@ import java.util.List;
 public class FuncionarioForm extends JFrame {
 
     private JTextField txtNombre, txtApellido, txtEmail, txtSalario;
-    private JComboBox<String> comboDepartamento;
+    private JComboBox<Departamento> comboDepartamento;
     private JTable tabla;
     private DefaultTableModel modelo;
 
     private FuncionarioController controller = new FuncionarioController();
+    private DepartamentoController deptController = new DepartamentoController();
 
     public FuncionarioForm() {
         setTitle("Gestión de Funcionarios");
@@ -62,10 +65,12 @@ public class FuncionarioForm extends JFrame {
         JButton btnGuardar = new JButton("Guardar");
         JButton btnActualizar = new JButton("Actualizar");
         JButton btnEliminar = new JButton("Eliminar");
+        JButton btnLimpiar = new JButton("Limpiar");
 
         panelBotones.add(btnGuardar);
         panelBotones.add(btnActualizar);
         panelBotones.add(btnEliminar);
+        panelBotones.add(btnLimpiar);
 
         add(panelBotones, BorderLayout.SOUTH);
 
@@ -73,6 +78,7 @@ public class FuncionarioForm extends JFrame {
         btnGuardar.addActionListener(e -> guardar());
         btnActualizar.addActionListener(e -> actualizar());
         btnEliminar.addActionListener(e -> eliminar());
+        btnLimpiar.addActionListener(e -> limpiarCampos());
 
         tabla.getSelectionModel().addListSelectionListener(e -> cargarDatosSeleccionados());
 
@@ -83,11 +89,19 @@ public class FuncionarioForm extends JFrame {
         setVisible(true);
     }
 
-    // ===== CARGAR DEPARTAMENTOS =====
+    // ===== CARGAR DEPARTAMENTOS DESDE BD =====
     private void cargarDepartamentos() {
-        comboDepartamento.addItem("1 - Sistemas");
-        comboDepartamento.addItem("2 - Recursos Humanos");
-        comboDepartamento.addItem("3 - Finanzas");
+        try {
+            comboDepartamento.removeAllItems();
+
+            List<Departamento> lista = deptController.listar();
+            for (Departamento d : lista) {
+                comboDepartamento.addItem(d);
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        }
     }
 
     // ===== GUARDAR =====
@@ -99,9 +113,8 @@ public class FuncionarioForm extends JFrame {
             f.setEmail(txtEmail.getText());
             f.setSalario(Double.parseDouble(txtSalario.getText()));
 
-            String seleccionado = comboDepartamento.getSelectedItem().toString();
-            int idDepartamento = Integer.parseInt(seleccionado.split(" - ")[0]);
-            f.setDepartamentoId(idDepartamento);
+            Departamento d = (Departamento) comboDepartamento.getSelectedItem();
+            f.setDepartamentoId(d.getId());
 
             controller.crear(f);
             listar();
@@ -118,6 +131,7 @@ public class FuncionarioForm extends JFrame {
     private void listar() {
         try {
             modelo.setRowCount(0);
+
             List<Funcionario> lista = controller.listar();
 
             for (Funcionario f : lista) {
@@ -178,9 +192,8 @@ public class FuncionarioForm extends JFrame {
             f.setEmail(txtEmail.getText());
             f.setSalario(Double.parseDouble(txtSalario.getText()));
 
-            String seleccionado = comboDepartamento.getSelectedItem().toString();
-            int idDepartamento = Integer.parseInt(seleccionado.split(" - ")[0]);
-            f.setDepartamentoId(idDepartamento);
+            Departamento d = (Departamento) comboDepartamento.getSelectedItem();
+            f.setDepartamentoId(d.getId());
 
             controller.actualizar(f);
             listar();
@@ -206,8 +219,8 @@ public class FuncionarioForm extends JFrame {
             int deptId = (int) modelo.getValueAt(fila, 5);
 
             for (int i = 0; i < comboDepartamento.getItemCount(); i++) {
-                String item = comboDepartamento.getItemAt(i);
-                if (item.startsWith(deptId + " -")) {
+                Departamento d = comboDepartamento.getItemAt(i);
+                if (d.getId() == deptId) {
                     comboDepartamento.setSelectedIndex(i);
                     break;
                 }
@@ -215,12 +228,14 @@ public class FuncionarioForm extends JFrame {
         }
     }
 
-    // ===== LIMPIAR CAMPOS =====
+    // ===== LIMPIAR =====
     private void limpiarCampos() {
         txtNombre.setText("");
         txtApellido.setText("");
         txtEmail.setText("");
         txtSalario.setText("");
-        comboDepartamento.setSelectedIndex(0);
+        if (comboDepartamento.getItemCount() > 0) {
+            comboDepartamento.setSelectedIndex(0);
+        }
     }
 }
